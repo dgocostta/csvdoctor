@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSVDoctor — Free CSV quality check, runs in your browser</title>
+<meta name="description" content="Drop a CSV. Get a diagnostic report on missing values, duplicates, type issues, and format inconsistencies. Download a cleaned version. All processing happens locally — nothing uploaded.">
+<meta property="og:title" content="CSVDoctor — Free CSV quality check">
+<meta property="og:description" content="Diagnose and clean messy CSVs in seconds. Runs entirely in your browser. No signup.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #faf7f2;
+  --bg-elev: #f3efe7;
+  --bg-card: #ffffff;
+  --ink: #1c1917;
+  --ink-soft: #44403c;
+  --ink-muted: #78716c;
+  --ink-faint: #a8a29e;
+  --line: rgba(28, 25, 23, 0.1);
+  --line-strong: rgba(28, 25, 23, 0.2);
+  --accent: #0f766e;
+  --accent-soft: #ccfbf1;
+  --accent-deep: #134e4a;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  --warning: #b45309;
+  --warning-bg: #fef3c7;
+  --success: #15803d;
+  --success-bg: #f0fdf4;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1917;
+    --bg-elev: #292524;
+    --bg-card: #1c1917;
+    --ink: #f5f5f4;
+    --ink-soft: #d6d3d1;
+    --ink-muted: #a8a29e;
+    --ink-faint: #78716c;
+    --line: rgba(245, 245, 244, 0.1);
+    --line-strong: rgba(245, 245, 244, 0.2);
+    --accent: #5eead4;
+    --accent-soft: rgba(94, 234, 212, 0.12);
+    --accent-deep: #99f6e4;
+    --danger: #fca5a5;
+    --danger-bg: rgba(185, 28, 28, 0.15);
+    --warning: #fcd34d;
+    --warning-bg: rgba(180, 83, 9, 0.15);
+    --success: #86efac;
+    --success-bg: rgba(21, 128, 61, 0.15);
+  }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* ===== Header ===== */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  margin-bottom: 64px;
+  border-bottom: 1px solid var(--line);
+  animation: fadeIn 0.5s ease-out both;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-mark {
+  width: 36px; height: 36px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-deep);
+}
+
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 30;
+}
+
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+  margin-top: 1px;
+}
+
+.byline {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.byline:hover { color: var(--ink); }
+
+/* ===== Welcome ===== */
+.welcome { text-align: center; padding: 16px 0 48px; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+  animation: fadeIn 0.5s 0.1s ease-out both;
+}
+
+h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 6.5vw, 64px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 28px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  font-variation-settings: "opsz" 144;
+  animation: fadeIn 0.6s 0.15s ease-out both;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--accent-deep);
+  font-variation-settings: "opsz" 144, "SOFT" 100;
+}
+
+.lead {
+  font-size: 18px;
+  color: var(--ink-soft);
+  max-width: 580px;
+  margin: 0 auto 44px;
+  line-height: 1.55;
+  animation: fadeIn 0.6s 0.25s ease-out both;
+}
+
+/* ===== Dropzone ===== */
+.dropzone {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 14px;
+  padding: 56px 32px;
+  background: var(--bg-elev);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  animation: fadeIn 0.6s 0.35s ease-out both;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.dropzone-icon {
+  width: 44px; height: 44px;
+  margin: 0 auto 18px;
+  color: var(--ink-muted);
+  transition: color 0.2s;
+}
+.dropzone:hover .dropzone-icon { color: var(--accent); }
+
+.dropzone-text {
+  font-size: 17px;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.dropzone-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dropzone input[type="file"] { display: none; }
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-deep);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.link-btn:hover { text-decoration-thickness: 2px; }
+
+.sample-row {
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--ink-muted);
+  animation: fadeIn 0.6s 0.45s ease-out both;
+}
+
+/* ===== Results ===== */
+.results { animation: fadeIn 0.4s ease-out both; }
+
+.report-header {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.report-stamp {
+  position: absolute;
+  top: 20px; right: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+
+.report-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.report-file {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.report-meta {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.report-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== Metric cards ===== */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 48px;
+}
+
+.metric {
+  padding: 20px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric.flag-high::before,
+.metric.flag-medium::before,
+.metric.flag-low::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.metric.flag-high::before { background: var(--danger); }
+.metric.flag-medium::before { background: var(--warning); }
+.metric.flag-low::before { background: var(--success); }
+
+.metric-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variation-settings: "opsz" 60;
+}
+
+.metric-value .unit {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* ===== Section heading ===== */
+h2 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ===== Column items ===== */
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 40px;
+}
+
+.column-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  gap: 16px;
+  transition: border-color 0.15s;
+}
+
+.column-item:hover { border-color: var(--line-strong); }
+
+.column-info { flex: 1; min-width: 0; }
+
+.column-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.column-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.column-issues {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.column-issues.clean { color: var(--ink-muted); font-style: italic; }
+
+.severity-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  border: 1px solid;
+}
+
+.severity-high   { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger); }
+.severity-medium { background: var(--warning-bg); color: var(--warning); border-color: var(--warning); }
+.severity-low    { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+
+/* ===== Actions ===== */
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+}
+
+.btn:hover { background: var(--bg-elev); border-color: var(--ink-muted); }
+.btn:active { transform: scale(0.985); }
+
+.btn.primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.btn.primary:hover { opacity: 0.88; }
+
+.btn svg { width: 16px; height: 16px; }
+
+.privacy-note {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.privacy-note::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+/* ===== Footer ===== */
+footer {
+  margin-top: auto;
+  padding-top: 80px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.8;
+}
+
+footer a { color: var(--ink-muted); text-decoration-thickness: 1px; }
+footer a:hover { color: var(--ink); }
+
+/* ===== Loading / error states ===== */
+.loading {
+  text-align: center;
+  padding: 64px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.error-box {
+  padding: 16px 20px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  color: var(--danger);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+  .container { padding: 24px 16px 48px; }
+  header { margin-bottom: 32px; }
+  .welcome { padding: 8px 0 32px; }
+  .lead { font-size: 16px; }
+  .dropzone { padding: 40px 20px; }
+  .report-header { padding: 20px; }
+  .report-stamp { position: static; margin-bottom: 12px; }
+  .metric { padding: 16px 18px; }
+  .metric-value { font-size: 26px; }
+  .column-item { padding: 14px 16px; }
+  .actions { flex-direction: column; align-items: stretch; }
+  .btn { justify-content: center; }
+  .privacy-note { margin-left: 0; margin-top: 8px; justify-content: center; }
+}
+
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <path d="m9 14 2 2 4-4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">CSVDoctor</div>
+        <div class="brand-tag">free · no signup · runs in your browser</div>
+      </div>
+    </div>
+    <a class="byline" href="https://rohityadav.ie" target="_blank" rel="noopener">rohityadav.ie ↗</a>
+  </header>
+
+  <main>
+
+    <section id="welcome" class="welcome">
+      <p class="eyebrow">Data quality, diagnosed in seconds</p>
+      <h1>The CSV file you'd <em>never</em> push to production.</h1>
+      <p class="lead">Drop a file. Get a full diagnostic: missing values, duplicates, type mismatches, casing chaos, date-format spaghetti. Download a cleaned version. All in your browser — nothing uploaded.</p>
+
+      <label class="dropzone" id="dropzone" for="fileInput">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M12 18v-6"/>
+          <path d="m9 15 3-3 3 3"/>
+        </svg>
+        <p class="dropzone-text">Drop a CSV here, or <span class="link-btn">choose a file</span></p>
+        <p class="dropzone-hint">up to 50MB · processed locally · never uploaded</p>
+        <input type="file" id="fileInput" accept=".csv,.tsv,text/csv,text/tab-separated-values" />
+      </label>
+
+      <p class="sample-row">No file handy? <button class="link-btn" id="sampleBtn" type="button">Try a deliberately messy sample →</button></p>
+    </section>
+
+    <section id="loading" class="loading" hidden>Parsing…</section>
+
+    <section id="results" class="results" hidden>
+
+      <div class="report-header">
+        <div class="report-stamp">Report №<span id="reportNum">001</span></div>
+        <div class="report-label">Examined</div>
+        <div class="report-file" id="fileName"></div>
+        <div class="report-meta" id="fileMeta"></div>
+        <div class="report-actions">
+          <button class="btn" id="resetBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            Check another
+          </button>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric" id="metricScore">
+          <div class="metric-label">Quality score</div>
+          <div class="metric-value" id="score">—</div>
+        </div>
+        <div class="metric" id="metricMissing">
+          <div class="metric-label">Missing values</div>
+          <div class="metric-value" id="missing">—</div>
+        </div>
+        <div class="metric" id="metricDupes">
+          <div class="metric-label">Duplicate rows</div>
+          <div class="metric-value" id="duplicates">—</div>
+        </div>
+        <div class="metric" id="metricTypes">
+          <div class="metric-label">Cols with issues</div>
+          <div class="metric-value" id="typeIssues">—</div>
+        </div>
+      </div>
+
+      <h2>Issues by column</h2>
+      <div class="columns" id="columnsList"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="downloadCleanBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download cleaned CSV
+        </button>
+        <button class="btn" id="downloadReportBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Download report
+        </button>
+        <span class="privacy-note">Processed locally — never uploaded</span>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Built by <a href="https://rohityadav.ie" target="_blank" rel="noopener">Rohit Yadav</a> — Data Engineer in Dublin. &nbsp;·&nbsp; <a href="https://github.com/nameisrohit" target="_blank" rel="noopener">GitHub</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/rohit-s-yadav/" target="_blank" rel="noopener">LinkedIn</a></p>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const dropzone        = $('dropzone');
+  const fileInput       = $('fileInput');
+  const sampleBtn       = $('sampleBtn');
+  const resetBtn        = $('resetBtn');
+  const welcomeEl       = $('welcome');
+  const loadingEl       = $('loading');
+  const resultsEl       = $('results');
+  const downloadCleanBtn  = $('downloadCleanBtn');
+  const downloadReportBtn = $('downloadReportBtn');
+
+  let currentFile = null;
+  let currentAnalysis = null;
+
+  // ===== File input / drop handling =====
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  ['dragenter', 'dragover'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    });
+  });
+  dropzone.addEventListener('drop', (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  sampleBtn.addEventListener('click', () => {
+    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
+    const file = new File([blob], 'sample_customers_messy.csv', { type: 'text/csv' });
+    handleFile(file);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    resultsEl.hidden = true;
+    welcomeEl.hidden = false;
+    fileInput.value = '';
+    currentFile = null;
+    currentAnalysis = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !resultsEl.hidden) resetBtn.click();
+  });
+
+  // ===== File parsing =====
+  function handleFile(file) {
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File is over 50MB. For larger files, the paid version (coming soon) handles up to 500MB.');
+      return;
+    }
+    currentFile = file;
+    welcomeEl.hidden = true;
+    loadingEl.hidden = false;
+    resultsEl.hidden = true;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: 'greedy',
+      dynamicTyping: false,
+      complete: (result) => {
+        try {
+          currentAnalysis = analyzeData(result.data, result.meta.fields || []);
+          renderResults();
+        } catch (err) {
+          console.error(err);
+          loadingEl.hidden = true;
+          welcomeEl.hidden = false;
+          alert('Could not analyse this file: ' + err.message);
+        }
+      },
+      error: (err) => {
+        loadingEl.hidden = true;
+        welcomeEl.hidden = false;
+        alert('Failed to parse CSV: ' + err.message);
+      }
+    });
+  }
+
+  // ===== Analysis =====
+  const NULL_MARKERS = ['', 'na', 'n/a', 'null', 'none', '-', '--', 'nil', 'nan', 'n.a.', 'n/a.', '#n/a'];
+
+  function isNullValue(v) {
+    if (v === null || v === undefined) return true;
+    return NULL_MARKERS.includes(String(v).trim().toLowerCase());
+  }
+
+  function inferType(raw) {
+    const s = String(raw).trim();
+    if (!s) return 'null';
+    if (/^-?\d+$/.test(s)) return 'integer';
+    if (/^-?\d*\.\d+$/.test(s)) return 'number';
+    if (/^[$€£¥₹]\s?-?[\d,]+\.?\d*$/.test(s)) return 'currency';
+    if (/^-?[\d,]+\.?\d*\s?[$€£¥₹]$/.test(s)) return 'currency';
+    if (/^(true|false)$/i.test(s)) return 'boolean';
+    if (/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i.test(s)) return 'email';
+    if (/^https?:\/\//i.test(s)) return 'url';
+    if (/^\d{4}-\d{1,2}-\d{1,2}([ T]\d{1,2}:\d{1,2})?/.test(s)) return 'date';
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) return 'date';
+    if (/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(s)) return 'date';
+    if (/^\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s)) return 'date';
+    return 'string';
+  }
+
+  function detectDateFormat(s) {
+    const t = String(s).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return 'YYYY-MM-DD';
+    if (/^\d{4}-\d{2}-\d{2}[ T]/.test(t)) return 'YYYY-MM-DDTHH:MM';
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(t)) return 'DD/MM/YYYY';
+    if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(t)) return 'DD/MM/YY';
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(t)) return 'DD-MM-YYYY';
+    if (/^\d{1,2}-\d{1,2}-\d{2}$/.test(t)) return 'DD-MM-YY';
+    if (/^\d{1,2}\s+\w+\s+\d{4}$/.test(t)) return 'D Mon YYYY';
+    return 'other';
+  }
+
+  function isValidEmail(s) {
+    return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(String(s).trim());
+  }
+
+  function analyzeColumn(values, columnName) {
+    const issues = [];
+    const total = values.length;
+
+    const missing = values.filter(isNullValue).length;
+    const missingPct = total ? missing / total : 0;
+    if (missing > 0) {
+      issues.push(`${missing.toLocaleString()} missing (${(missingPct * 100).toFixed(1)}%)`);
+    }
+
+    const nonNull = values
+      .filter((v) => !isNullValue(v))
+      .map((v) => String(v));
+
+    const whitespace = nonNull.filter((v) => v !== v.trim()).length;
+    if (whitespace > 0) {
+      issues.push(`${whitespace.toLocaleString()} with leading/trailing whitespace`);
+    }
+
+    const trimmed = nonNull.map((v) => v.trim()).filter((v) => v);
+    const types = trimmed.map(inferType);
+    const typeCounts = {};
+    types.forEach((t) => { typeCounts[t] = (typeCounts[t] || 0) + 1; });
+    const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+    const dominantType = sortedTypes[0] ? sortedTypes[0][0] : 'string';
+
+    if (['integer', 'number', 'currency', 'date', 'email', 'boolean', 'url'].includes(dominantType) && sortedTypes.length > 1) {
+      const minorityCount = sortedTypes.slice(1).reduce((s, [, c]) => s + c, 0);
+      if (minorityCount > 0) {
+        const examples = trimmed.filter((v) => inferType(v) !== dominantType).slice(0, 2);
+        const exStr = examples.length ? ` (e.g. ${examples.map((e) => `"${e.length > 20 ? e.slice(0, 20) + '…' : e}"`).join(', ')})` : '';
+        issues.push(`${minorityCount.toLocaleString()} value${minorityCount === 1 ? '' : 's'} don't match the inferred ${dominantType} type${exStr}`);
+      }
+    }
+
+    if (dominantType === 'date') {
+      const formats = new Set(
+        trimmed.filter((v) => inferType(v) === 'date').map(detectDateFormat)
+      );
+      if (formats.size > 1) {
+        issues.push(`Mixed date formats detected: ${[...formats].join(', ')}`);
+      }
+    }
+
+    const looksLikeEmail = /e?[\-_\s]?mail/i.test(columnName) || dominantType === 'email';
+    if (looksLikeEmail && trimmed.length > 0) {
+      const invalid = trimmed.filter((v) => !isValidEmail(v)).length;
+      if (invalid > 0) {
+        issues.push(`${invalid.toLocaleString()} invalid email format${invalid === 1 ? '' : 's'}`);
+      }
+    }
+
+    if (dominantType === 'string' && trimmed.length > 0) {
+      const trimmedSet = new Set(trimmed);
+      const lowerSet = new Set(trimmed.map((v) => v.toLowerCase()));
+      if (lowerSet.size < trimmedSet.size && trimmedSet.size < 200) {
+        const collisions = trimmedSet.size - lowerSet.size;
+        const variants = [...trimmedSet].slice(0, 3);
+        issues.push(`${collisions} casing inconsistency variant${collisions === 1 ? '' : 's'} (e.g. ${variants.map((v) => `"${v}"`).join(', ')})`);
+      }
+    }
+
+    let severity = 'low';
+    let score = 0;
+    if (missingPct > 0.1) score += 2;
+    if (missingPct > 0.3) score += 2;
+    if (whitespace / Math.max(total, 1) > 0.05) score += 1;
+    score += issues.length;
+    if (score >= 4) severity = 'high';
+    else if (score >= 2) severity = 'medium';
+    else if (issues.length === 0) severity = 'low';
+    else severity = 'medium';
+
+    return {
+      columnName,
+      total,
+      missing,
+      missingPct,
+      whitespace,
+      issues,
+      dominantType,
+      severity
+    };
+  }
+
+  function analyzeData(data, columns) {
+    if (!columns || columns.length === 0) {
+      columns = Object.keys(data[0] || {});
+    }
+
+    const seen = new Map();
+    const dupeIndices = new Set();
+    data.forEach((row, i) => {
+      const key = JSON.stringify(row);
+      if (seen.has(key)) dupeIndices.add(i);
+      else seen.set(key, i);
+    });
+
+    const columnAnalyses = columns.map((col) => {
+      const values = data.map((row) => row[col]);
+      return analyzeColumn(values, col);
+    });
+
+    const totalCells = data.length * columns.length;
+    const totalMissing = columnAnalyses.reduce((s, c) => s + c.missing, 0);
+    const missingPct = totalCells ? totalMissing / totalCells : 0;
+    const issueCols = columnAnalyses.filter((c) => c.issues.length > 0).length;
+
+    let score = 100;
+    score -= Math.min(20, (dupeIndices.size / Math.max(data.length, 1)) * 100);
+    for (const col of columnAnalyses) {
+      score -= Math.min(10, col.missingPct * 30);
+      if (col.severity === 'high')   score -= 7;
+      else if (col.severity === 'medium') score -= 3;
+    }
+    score = Math.max(0, Math.round(score));
+
+    return {
+      rowCount: data.length,
+      columnCount: columns.length,
+      columns,
+      duplicates: dupeIndices.size,
+      duplicateIndices: dupeIndices,
+      missingPct,
+      issueCols,
+      score,
+      columnAnalyses,
+      rawData: data
+    };
+  }
+
+  // ===== Rendering =====
+  function renderResults() {
+    loadingEl.hidden = true;
+    welcomeEl.hidden = true;
+    resultsEl.hidden = false;
+
+    $('reportNum').textContent = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
+    $('fileName').textContent = currentFile.name;
+    $('fileMeta').textContent = `${currentAnalysis.rowCount.toLocaleString()} rows · ${currentAnalysis.columnCount} columns · ${formatFileSize(currentFile.size)}`;
+
+    $('score').innerHTML = `${currentAnalysis.score}<span class="unit">/100</span>`;
+    $('missing').textContent = `${(currentAnalysis.missingPct * 100).toFixed(1)}%`;
+    $('duplicates').textContent = currentAnalysis.duplicates.toLocaleString();
+    $('typeIssues').textContent = `${currentAnalysis.issueCols}`;
+
+    flagMetric('metricScore', currentAnalysis.score < 60 ? 'high' : currentAnalysis.score < 85 ? 'medium' : 'low');
+    flagMetric('metricMissing', currentAnalysis.missingPct > 0.05 ? 'high' : currentAnalysis.missingPct > 0.01 ? 'medium' : 'low');
+    flagMetric('metricDupes', currentAnalysis.duplicates > 0 ? (currentAnalysis.duplicates > currentAnalysis.rowCount * 0.02 ? 'high' : 'medium') : 'low');
+    flagMetric('metricTypes', currentAnalysis.issueCols >= 3 ? 'high' : currentAnalysis.issueCols >= 1 ? 'medium' : 'low');
+
+    const list = $('columnsList');
+    list.innerHTML = '';
+    const sorted = [...currentAnalysis.columnAnalyses].sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2 };
+      return order[a.severity] - order[b.severity];
+    });
+
+    for (const col of sorted) {
+      const item = document.createElement('div');
+      item.className = 'column-item';
+
+      const issuesHtml = col.issues.length
+        ? `<div class="column-issues">${col.issues.map(escapeHtml).join(' · ')}</div>`
+        : `<div class="column-issues clean">No issues detected.</div>`;
+
+      item.innerHTML = `
+        <div class="column-info">
+          <div class="column-name">${escapeHtml(col.columnName)}</div>
+          <div class="column-meta">type: ${escapeHtml(col.dominantType)} · ${col.total.toLocaleString()} values</div>
+          ${issuesHtml}
+        </div>
+        <span class="severity-badge severity-${col.severity}">${col.severity}</span>
+      `;
+      list.appendChild(item);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function flagMetric(id, level) {
+    const el = $(id);
+    el.classList.remove('flag-high', 'flag-medium', 'flag-low');
+    el.classList.add(`flag-${level}`);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  // ===== Cleaning =====
+  function buildCleanedData() {
+    const { rawData, columns, duplicateIndices } = currentAnalysis;
+    return rawData
+      .filter((_, i) => !duplicateIndices.has(i))
+      .map((row) => {
+        const out = {};
+        for (const col of columns) {
+          let v = row[col];
+          if (v === null || v === undefined) { out[col] = ''; continue; }
+          v = String(v).trim();
+          if (NULL_MARKERS.includes(v.toLowerCase())) v = '';
+          out[col] = v;
+        }
+        return out;
+      });
+  }
+
+  downloadCleanBtn.addEventListener('click', () => {
+    const cleaned = buildCleanedData();
+    const csv = Papa.unparse(cleaned);
+    const base = currentFile.name.replace(/\.csv$/i, '').replace(/\.tsv$/i, '');
+    downloadFile(csv, `${base}_cleaned.csv`, 'text/csv;charset=utf-8;');
+  });
+
+  // ===== Report generation =====
+  function generateReport() {
+    const a = currentAnalysis;
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+
+    let md = `# CSV quality report\n\n`;
+    md += `**File:** \`${currentFile.name}\`  \n`;
+    md += `**Generated:** ${now}  \n`;
+    md += `**Tool:** [CSVDoctor](https://csvdoctor.rohityadav.ie)\n\n`;
+    md += `---\n\n`;
+
+    md += `## Summary\n\n`;
+    md += `| Metric | Value |\n|---|---|\n`;
+    md += `| Quality score | **${a.score} / 100** |\n`;
+    md += `| Rows | ${a.rowCount.toLocaleString()} |\n`;
+    md += `| Columns | ${a.columnCount} |\n`;
+    md += `| Missing values | ${(a.missingPct * 100).toFixed(2)}% |\n`;
+    md += `| Duplicate rows | ${a.duplicates.toLocaleString()} |\n`;
+    md += `| Columns with issues | ${a.issueCols} of ${a.columnCount} |\n\n`;
+
+    md += `## Issues by column\n\n`;
+    const sorted = [...a.columnAnalyses].sort((x, y) => {
+      const order = { high: 0, medium: 1, low: 2 };
+      return order[x.severity] - order[y.severity];
+    });
+
+    for (const col of sorted) {
+      md += `### \`${col.columnName}\` — ${col.severity.toUpperCase()}\n\n`;
+      md += `- Inferred type: \`${col.dominantType}\`\n`;
+      md += `- Values: ${col.total.toLocaleString()}\n`;
+      md += `- Missing: ${col.missing.toLocaleString()} (${(col.missingPct * 100).toFixed(1)}%)\n`;
+      if (col.issues.length === 0) {
+        md += `\n_No issues detected._\n\n`;
+      } else {
+        md += `\n**Findings:**\n`;
+        for (const issue of col.issues) md += `- ${issue}\n`;
+        md += `\n`;
+      }
+    }
+
+    md += `## Recommended next steps\n\n`;
+    const recs = [];
+    if (a.duplicates > 0) recs.push(`Remove ${a.duplicates.toLocaleString()} duplicate row${a.duplicates === 1 ? '' : 's'}.`);
+    if (a.missingPct > 0.02) recs.push(`Investigate ${(a.missingPct * 100).toFixed(1)}% missing values — decide on imputation or filtering policy.`);
+    const highCols = a.columnAnalyses.filter((c) => c.severity === 'high').map((c) => `\`${c.columnName}\``);
+    if (highCols.length) recs.push(`Prioritise fixes in: ${highCols.join(', ')}.`);
+    const dateCols = a.columnAnalyses.filter((c) => c.dominantType === 'date' && c.issues.some((i) => i.includes('date format')));
+    if (dateCols.length) recs.push(`Standardise date formats in: ${dateCols.map((c) => `\`${c.columnName}\``).join(', ')} (ISO-8601 recommended).`);
+    if (recs.length === 0) recs.push(`Looks clean. Consider adding schema validation upstream to keep it this way.`);
+    for (const r of recs) md += `- ${r}\n`;
+
+    md += `\n---\n\n*Generated by [CSVDoctor](https://csvdoctor.rohityadav.ie) — a free CSV quality check that runs entirely in your browser. No file ever leaves your machine.*\n`;
+
+    return md;
+  }
+
+  downloadReportBtn.addEventListener('click', () => {
+    const md = generateReport();
+    const base = currentFile.name.replace(/\.csv$/i, '').replace(/\.tsv$/i, '');
+    downloadFile(md, `${base}_quality_report.md`, 'text/markdown;charset=utf-8;');
+  });
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 200);
+  }
+
+  // ===== Sample data (deliberately messy) =====
+  const SAMPLE_CSV = `customer_id,full_name,email,signup_date,country,revenue,age
+1001,John Smith,john.smith@example.com,2024-01-15,UK,1250.50,34
+1002,  jane doe  ,jane.doe@example.com,15/01/2024,U.K.,890,28
+1003,Mike Johnson,mike@invalid,2024-02-03,United Kingdom,N/A,45
+1004,SARAH WILLIAMS,sarah.w@example.com,2024-02-10,Ireland,2100.00,31
+1005,David Brown,david.brown@example.com,10/02/2024,ireland,1500,
+1006,Emma Davis,emma.davis@example.com,2024-03-01,UK,750,29
+1007,Tom Wilson,tom.wilson example.com,01/03/2024,Eire,$2500,38
+1008,Lisa Anderson,lisa.a@example.com,2024-03-15,IRL,1800.25,42
+1009,Mike Johnson,mike@invalid,2024-02-03,United Kingdom,N/A,45
+1010,Robert Taylor,robert.t@example.com,15-03-2024,uk,1100,thirty-five
+1011,Mary Thomas,,2024-04-01,Ireland,1950,33
+1012,James Moore,james.moore@example.com,2024-04-05,U.K.,1650.75,28
+1013,Patricia White,patricia.w@example.com,5/4/24,UK,2400,41
+1014,  John Smith  ,john.smith@example.com,2024-01-15,UK,1250.50,34
+1015,Charles Harris,charles@example.com,2024-04-20,Ireland,890,36
+1016,Linda Martin,linda.martin@example,2024-05-01,IE,1750,30
+1017,Daniel Lee,daniel.lee@example.com,01-05-2024,United Kingdom,2200,44
+1018,Susan Walker,susan.w@example.com,2024-05-10,uk,,27
+1019,Kevin Hall,kevin@example.com,10/05/2024,Ireland,1400.50,39
+1020,Betty Allen,betty.allen@example.com,2024-05-15,IRL,1850,32
+1021,Mark Young,mark.young@example.com,15/5/24,UK,975,25
+1022,Karen King,karen.k@example.com,2024-06-01,Eire,2050,37
+1023,Paul Wright,paul.wright@example.com,2024-06-10,U.K.,1325,43
+1024,Donna Lopez,donna@example.com,10-06-2024,IE,1600,29
+1025,Steven Hill,steven.h@example.com,2024-06-20,Ireland,2750.50,40`;
+
+})();
+</script>
+
+</body>
+</html>
