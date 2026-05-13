@@ -215,9 +215,7 @@ h1 em {
   color: var(--ink-muted);
 }
 
-.dropzone input[type="file"] {
-  display: none !important;
-}
+/* file input moved outside dropzone, hidden via attribute */
 
 .link-btn {
   background: none;
@@ -589,7 +587,7 @@ footer a:hover { color: var(--ink); }
       <h1>The CSV file you'd <em>never</em> push to production.</h1>
       <p class="lead">Drop a file. Get a full diagnostic: missing values, duplicates, type mismatches, casing chaos, date-format spaghetti. Download a cleaned version. All in your browser — nothing uploaded.</p>
 
-      <label class="dropzone" id="dropzone" for="fileInput">
+      <div class="dropzone" id="dropzone">
         <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -598,8 +596,8 @@ footer a:hover { color: var(--ink); }
         </svg>
         <p class="dropzone-text">Drop a CSV here, or <span class="link-btn">choose a file</span></p>
         <p class="dropzone-hint">up to 50MB · processed locally · never uploaded</p>
-        <input type="file" id="fileInput" accept=".csv,.tsv,text/csv,text/tab-separated-values" />
-      </label>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,.tsv,text/csv,text/tab-separated-values" hidden />
 
       <p class="sample-row">No file handy? <button class="link-btn" id="sampleBtn" type="button">Try a deliberately messy sample →</button></p>
     </section>
@@ -685,6 +683,8 @@ footer a:hover { color: var(--ink); }
   let currentAnalysis = null;
 
   // ===== File input / drop handling =====
+  dropzone.addEventListener('click', () => fileInput.click());
+
   fileInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
   });
