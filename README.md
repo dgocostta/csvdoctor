@@ -50,8 +50,8 @@ That's it. Vercel will redeploy on every push to `main`.
 
 ## Built by
 
-[Rohit Yadav](https://rohityadav.ie) — Data Engineer, Dublin.
-[GitHub](https://github.com/nameisrohit) · [LinkedIn](https://www.linkedin.com/in/rohit-s-yadav/)
+[Diego Costa](https://mindship.dev) — AI Developer, Dublin.
+[GitHub](https://github.com/dgocostta/) · [LinkedIn]([https://www.linkedin.com/in/rohit-s-yadav/](https://www.linkedin.com/in/diego-eliminate-manual-work-with-ai-powered-automation-446b7916a/))
 
 ## License
 
